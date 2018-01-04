@@ -1,0 +1,7 @@
+origin,destination,gst_or_tariff,hs_code,type,rate
+europe,shanghai,0,123456,0,0.2
+europe,hong kong,0,123456,0,0.2
+shanghai,singapore,0,123456,0,0
+hong kong,singapore,0,123456,0,0
+shanghai,singapore,1,123456,0,0.07
+hong kong,singapore,1,123456,0,0.07
