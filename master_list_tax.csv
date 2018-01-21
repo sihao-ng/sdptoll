@@ -1,3 +1,4 @@
+origin,destination,gst/tariff,hs_code,type,rate
 us,singapore,1,-,0,0.07
 us,singapore,0,21069061,2,88
 us,singapore,0,21069062,1,113

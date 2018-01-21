@@ -8,13 +8,13 @@ import math
 import numpy
 from gurobipy import *
 
-master_list_demand = []         # customer, sku, demand, value_of_shipment
-master_list_product = []        # sku, hs_code, weight/unit, height, width, length, iced, $/unit, origin_country
-master_list_tax = []            # origin, destination, 1-gst/0-tariff, hs_code, type, rate
+master_list_demand = []     # tuple: (customer, sku, demand, value_of_shipment(for GST calculation purpose))
+master_list_product = []    # tuple: (sku, hs_code, weight/unit, height, width, length, iced, $/unit, origin_country)
+master_list_tax = []        # tuple: (origin, destination, 1-gst/0-tariff, hs_code, type, rate)
 
-I = []    # Hubs
-J = []    # Customers
-L = []    # Plants
+I = []    # Hub country names
+J = []    # Customer country names
+L = []    # Plant country names
 
 N_I = 0   # Number of Hubs
 N_J = 0   # Number of Customers
@@ -22,79 +22,18 @@ N_K = 0   # Number of Products
 N_L = 0   # Number of Plants
 
 def main():
-    # Load lookup tables
-    load_master_list_demand()
+    load_master_list_demand()           # Load lookup tables
     load_master_list_product()
     load_master_list_tax()
     load_master_list_locations()
 
-    # Choose Solving Method Algorithm (-1=automatic, 0=primal simplex, 1=dual simplex, 2=barrier, 3=concurrent, 4=deterministic concurrent, 5=deterministic concurrent simplex)
-    method = -1
+    method = -1                         # Choose Solving Method Algorithm (-1=automatic, 0=primal simplex, 1=dual simplex, 2=barrier, 3=concurrent, 4=deterministic concurrent, 5=deterministic concurrent simplex)
     run_solver(method)
-
-# Demand Function (Returns number of units)
-def d(j, k):
-    sku = master_list_product[k][0]
-    for tuple in master_list_demand:
-        if tuple[0] == j and tuple[1] == sku:
-            return tuple[2]
-    return 0
-
-# Unit Price Function (Returns $/unit)
-def unit_price(k):
-    return master_list_product[k][7]
-
-# GST Function (Returns x% GST)
-def GST(i, j, k):
-    origin_country = I[i]
-    destination_country = J[j]
-    hs_code = master_list_product[k][1]
-
-    for tuple in master_list_tax:
-#        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and tuple[3] == hs_code:
-        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and match(tuple[3], hs_code):
-            if tuple[4] == 0:
-                return tuple[5]
-            else:
-                return 0.0
-    return 0.0
-
-# GST Eligibility Function (Returns 0 or 1)
-def W(i, j, k):
-    value_of_shipment = d(j, k) * unit_price(k)
-    customer_country = J[j]
-
-    if customer_country == 'singapore' and value_of_shipment <= 400:
-        return 0
-    return 1
-
-# Tariff Functions
-def tar(origin, destination, hs_code):
-    for tuple in master_list_tax:
-        if tuple[0] == origin and tuple[1] == destination and not tuple[2] and tuple[3] == hs_code:
-            return tuple[5]
-    return 0.0
-
-def tar_plt_to_hub(l, i, k):
-    origin = L[l]
-    destination = I[i]
-    hs_code = master_list_product[k][1]
-    return tar(origin, destination, hs_code)
-
-def tar_hub_to_cus(i, j, k):
-    origin = I[i]
-    destination = J[j]
-    hs_code = master_list_product[k][1]
-    return tar(origin, destination, hs_code)
-
 
 # Solver Function
 def run_solver(method):
-    # Initialize Model
-    model = Model('SDP Group 10')
-
-    # Specify Solving Method
-    model.setParam('Method', method)
+    model = Model('SDP Group 10')       # Initialize Model
+    model.setParam('Method', method)    # Specify Solving Method
 
     # Decision Variables
     Y = numpy.empty((N_I + 1, N_J + 1, N_K + 1), dtype = object)   # Indicator variable if Warehouse i serves Customer j Product k
@@ -159,15 +98,71 @@ def run_solver(method):
     # c10 (N/A - No X variable)
     # c11 (N/A - Z already initialized as continuous variable with lower bound 0)
 
-    # Solve Model
-    model.optimize()
 
-    # Print Results
-    model.printAttr('x')
+    model.optimize()        # Solve Model
+    model.printAttr('x')    # Print Results
 
-    # Save Model Details
-    model.write('fyp.lp')
-    model.write('fyp.mps')
+    #model.write('fyp.lp')  # Save Model Details
+    #model.write('fyp.mps')
+
+# Demand Function (Returns number of units)
+def d(j, k):
+    sku = master_list_product[k][0]
+    for tuple in master_list_demand:
+        if tuple[0] == j and tuple[1] == sku:
+            return tuple[2]
+    return 0
+
+# Unit Price Function (Returns $/unit)
+def unit_price(k):
+    return master_list_product[k][7]
+
+# GST Function (Returns x% GST)
+def GST(i, j, k):
+    origin_country = I[i]
+    destination_country = J[j]
+    hs_code = master_list_product[k][1]
+
+    for tuple in master_list_tax:
+#        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and tuple[3] == hs_code:
+        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and match(hs_code, tuple[3]):
+            if tuple[4] == 0:           # Type is ad valorem
+                return tuple[5]
+            else:
+                return 0.0
+    return 0.0
+
+# GST Eligibility Function (Returns 0 or 1)
+def W(i, j, k):
+    value_of_shipment = d(j, k) * unit_price(k)
+    customer_country = J[j]
+
+    if customer_country == 'singapore' and value_of_shipment <= 400:
+        return 0
+    return 1
+
+# Tariff Functions
+def tar(origin, destination, hs_code):
+    for tuple in master_list_tax:
+        if tuple[0] == origin and tuple[1] == destination and not tuple[2] and match(hs_code, tuple[3]):
+            if tuple[4] == 0:           # Type is ad valorem
+                return tuple[5]
+            else:
+                print('{}'s tar could not be calculated! Will assume no tariff.')
+                return 0.0
+    return 0.0
+
+def tar_plt_to_hub(l, i, k):
+    origin = L[l]
+    destination = I[i]
+    hs_code = master_list_product[k][1]
+    return tar(origin, destination, hs_code)
+
+def tar_hub_to_cus(i, j, k):
+    origin = I[i]
+    destination = J[j]
+    hs_code = master_list_product[k][1]
+    return tar(origin, destination, hs_code)
 
 def load_master_list_demand():
     global master_list_demand
@@ -241,7 +236,7 @@ def load_master_list_locations():
         reader = csv.reader(f)
         header = next(reader)
 
-        for row in reader:
+        for row in reader:          # Add country names to respective lists
             if i == 0:
                 I.append(row[1])
             elif i == 1:
@@ -253,9 +248,12 @@ def load_master_list_locations():
     N_J = len(J) - 1
     N_L = len(L) - 1
 
-def match(string1, string2):
-    regex = re.compile(string2)
-    if re.match(regex, string1):
+def match(string, wildcard):
+    if wildcard = '-':      # Will always match
+        return 1
+
+    regex = re.compile(wildcard)
+    if re.match(regex, string):
         return 1
     return 0
 
