@@ -1,6 +1,7 @@
 # Introduced CSV lists
 
 import time
+import re
 import csv
 import json
 import math
@@ -50,7 +51,8 @@ def GST(i, j, k):
     hs_code = master_list_product[k][1]
 
     for tuple in master_list_tax:
-        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and tuple[3] == hs_code:
+#        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and tuple[3] == hs_code:
+        if tuple[0] == origin_country and tuple[1] == destination_country and tuple[2] and match(tuple[3], hs_code):
             if tuple[4] == 0:
                 return tuple[5]
             else:
@@ -250,6 +252,12 @@ def load_master_list_locations():
     N_I = len(I) - 1
     N_J = len(J) - 1
     N_L = len(L) - 1
+
+def match(string1, string2):
+    regex = re.compile(string2)
+    if re.match(regex, string1):
+        return 1
+    return 0
 
 if __name__ == '__main__':
     main()
