@@ -13,7 +13,7 @@ master_list_product = []    # tuple: (sku, hs_code, weight/unit, height, width, 
 master_list_tax = []        # tuple: (origin, destination, 1-gst/0-tariff, hs_code, type, rate)
 
 master_list_transport = []  # tuple: (origin, destination, $/kg)
-master_list_warehouse = []  # tuple: (location, fixed cost, $/kg)
+master_list_warehouse = []  # tuple: (location, fixed cost, $/m3)
 
 I = []    # Hub country names
 J = []    # Customer country names
@@ -231,10 +231,12 @@ def W(i, j, k):
 # Warehouse Cost Functions
 def whVar(i, k):
     location = I[i]
-    weight_per_unit = master_list_product[k][2]
+    volume_per_unit = master_list_product[k][3] * master_list_product[k][4] * master_list_product[k][5]
+    #weight_per_unit = master_list_product[k][2]
     for tuple in master_list_warehouse:
         if tuple[0] == location:
-            return tuple[2] * weight_per_unit
+            return tuple[2] * volume_per_unit
+            #return tuple[2] * weight_per_unit
     return 0.0
 
 def whFix(i):
@@ -357,9 +359,16 @@ def load_master_list_warehouse():
     for row in reader:
         location = row[0]
         fixed_cost = float(row[1])
-        price_per_kg = float(row[2])
-        master_list_tax.append((location, fixed_cost, price_per_kg))
+        price_per_m3 = float(row[2])
+        master_list_tax.append((location, fixed_cost, price_per_m3))
+
+        #price_per_kg = float(row[2])
+        #master_list_tax.append((location, fixed_cost, price_per_kg))
     f.close()
+
+
+
+
 
 
 def match(string, wildcard):
