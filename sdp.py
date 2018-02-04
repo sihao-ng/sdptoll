@@ -151,6 +151,8 @@ def run_solver(method):
 
 
 
+
+
 # Demand Function (Returns number of units)
 def d(j, k):
     sku = master_list_product[k][0]
@@ -161,7 +163,8 @@ def d(j, k):
 
 # GST Function (Returns x% GST)
 def GST(i, j, k):
-    origin_country = I[i]
+    #origin_country = I[i]                          #if origin follows latest country exported from
+    origin_country = master_list_product[k][8]     #if origin follows country the product was manufactured
     destination_country = J[j]
     hs_code = master_list_product[k][1]
 
@@ -194,6 +197,10 @@ def tar_plt_to_hub(l, i, k):
 def tar_hub_to_cus(i, j, k):
     origin = I[i]
     destination = J[j]
+
+    if origin == destination:
+        return 0.0
+
     hs_code = master_list_product[k][1]
     return tar(origin, destination, hs_code)
 
@@ -208,6 +215,10 @@ def trans(origin, destination, k):
 def transWC(i, j, k):
     origin = I[i]
     destination = J[j]
+
+    if origin == destination:
+        return 0.0
+
     return trans(origin, destination, k)
 
 def transPW(l, i, k):
@@ -245,6 +256,8 @@ def whFix(i):
         if tuple[0] == location:
             return tuple[1]
     retutn 0.0
+
+
 
 
 
