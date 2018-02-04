@@ -101,7 +101,7 @@ def run_solver(method):
         )
         +
         quicksum(
-            whFix(i) * X(i) for i in range(1, N_I + 1)
+            whFix(i) * X[i] for i in range(1, N_I + 1)
         )
         , GRB.MINIMIZE
     )
@@ -183,9 +183,9 @@ def tar(origin, destination, hs_code):
         if tuple[0] == origin and tuple[1] == destination and not tuple[2] and match(hs_code, tuple[3]):
             if tuple[4] == 0:           # Type is ad valorem
                 return tuple[5]
-            else:
-                print('{}'s tar could not be calculated! Will assume no tariff.')
-                return 0.0
+        else:
+            print("{}'s tar could not be calculated! Will assume no tariff.".format(str(hs_code)))
+            return 0.0
     return 0.0
 
 def tar_plt_to_hub(l, i, k):
@@ -224,7 +224,7 @@ def transWC(i, j, k):
 def transPW(l, i, k):
     origin = L[l]
     destination = I[i]
-    return trans(origin, destination, k):
+    return trans(origin, destination, k)
 
 # Unit Price Function (Returns $/unit)
 def unit_price(k):
@@ -255,7 +255,7 @@ def whFix(i):
     for tuple in master_list_warehouse:
         if tuple[0] == location:
             return tuple[1]
-    retutn 0.0
+    return 0.0
 
 
 
@@ -297,11 +297,11 @@ def load_master_list_locations():
 
         for row in reader:          # Add country names to respective lists
             if i == 0:
-                I.append(row[1])
+                I.append(row[1].lower())
             elif i == 1:
-                J.append(row[1])
+                J.append(row[1].lower())
             elif i == 2:
-                L.append(row[1])
+                L.append(row[1].lower())
     f.close()
     N_I = len(I) - 1
     N_J = len(J) - 1
@@ -319,14 +319,14 @@ def load_master_list_product():
 
     for row in reader:
         sku = row[0]
-        hs_code = row[1]
+        hs_code = hs_code_str(row[1])
         unit_weight = float(row[2])
         height = float(row[3])
         width = float(row[4])
         length = float(row[5])
         iced = int(row[6])
         unit_price = float(row[7])
-        origin_country = row[8]
+        origin_country = row[8].lower()
         master_list_product.append((sku,hs_code,unit_weight,height,width,length,iced,unit_price,origin_country))
     f.close()
     N_K = len(master_list_product) - 1
@@ -339,10 +339,10 @@ def load_master_list_tax():
     header = next(reader)
 
     for row in reader:
-        origin = row[0]
-        destination = row[1]
+        origin = row[0].lower()
+        destination = row[1].lower()
         gst_or_tariff = int(row[2])
-        hs_code = row[3]
+        hs_code = hs_code_str(row[3])
         type = int(row[4])
         rate = float(row[5])
         master_list_tax.append((origin,destination,gst_or_tariff,hs_code,type,rate))
@@ -356,8 +356,8 @@ def load_master_list_transport():
     header = next(reader)
 
     for row in reader:
-        origin = row[0]
-        destination = row[1]
+        origin = row[0].lower()
+        destination = row[1].lower()
         unit_price = float(row[2])
         master_list_tax.append((origin,destination,unit_price))
     f.close()
@@ -370,7 +370,7 @@ def load_master_list_warehouse():
     header = next(reader)
 
     for row in reader:
-        location = row[0]
+        location = row[0].lower()
         fixed_cost = float(row[1])
         price_per_m3 = float(row[2])
         master_list_tax.append((location, fixed_cost, price_per_m3))
@@ -385,15 +385,22 @@ def load_master_list_warehouse():
 
 
 def match(string, wildcard):
-    if wildcard = '-':      # Will always match
+    if wildcard == '-':      # Will always match
         return 1
 
+    #print('string:{}, wildcard:{}'.format(string, wildcard))
     regex = re.compile(wildcard)
     if re.match(regex, string):
         return 1
     return 0
 
+def hs_code_str(string):
+    if string == '-':
+        return string
 
+    while len(string) < 8:
+        string = '0{}'.format(string)
+    return string
 
 
 
